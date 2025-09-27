@@ -560,6 +560,266 @@ async def get_all_drivers():
     
     return drivers
 
+# Rating & Review System
+@app.post("/api/ratings/submit")
+async def submit_rating(rating_data: Rating):
+    """Submit rating and review for a completed ride/delivery"""
+    try:
+        # Verify booking exists and is completed
+        if rating_data.booking_type == "ride":
+            booking = await db.ride_bookings.find_one({
+                "id": rating_data.booking_id,
+                "status": "completed"
+            })
+        else:
+            booking = await db.delivery_bookings.find_one({
+                "id": rating_data.booking_id,
+                "status": "delivered"
+            })
+        
+        if not booking:
+            raise HTTPException(status_code=404, detail="Completed booking not found")
+        
+        # Check if rating already exists
+        existing_rating = await db.ratings.find_one({"booking_id": rating_data.booking_id})
+        if existing_rating:
+            raise HTTPException(status_code=400, detail="Rating already submitted for this booking")
+        
+        # Save rating
+        rating_dict = rating_data.dict()
+        rating_dict["created_at"] = rating_dict["created_at"].isoformat()
+        
+        await db.ratings.insert_one(rating_dict)
+        
+        # Update driver's average rating
+        await update_driver_rating(rating_data.driver_id)
+        
+        return {"message": "Rating submitted successfully", "rating_id": rating_data.id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to submit rating: {str(e)}")
+
+async def update_driver_rating(driver_id: str):
+    """Update driver's average rating based on all ratings"""
+    try:
+        # Calculate average rating
+        pipeline = [
+            {"$match": {"driver_id": driver_id}},
+            {"$group": {
+                "_id": "$driver_id",
+                "average_rating": {"$avg": "$rating"},
+                "total_ratings": {"$sum": 1}
+            }}
+        ]
+        
+        result = await db.ratings.aggregate(pipeline).to_list(length=1)
+        
+        if result:
+            avg_rating = round(result[0]["average_rating"], 1)
+            total_ratings = result[0]["total_ratings"]
+            
+            # Update driver profile
+            await db.driver_profiles.update_one(
+                {"user_id": driver_id},
+                {"$set": {
+                    "rating": avg_rating,
+                    "total_ratings": total_ratings,
+                    "updated_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+    except Exception as e:
+        print(f"Error updating driver rating: {e}")
+
+@app.get("/api/drivers/{driver_id}/ratings")
+async def get_driver_ratings(driver_id: str, limit: int = 10, skip: int = 0):
+    """Get ratings and reviews for a driver"""
+    try:
+        ratings = await db.ratings.find({"driver_id": driver_id}).skip(skip).limit(limit).to_list(length=limit)
+        
+        # Get customer names for each rating
+        for rating in ratings:
+            customer = await db.users.find_one({"id": rating["customer_id"]})
+            rating["customer_name"] = customer["name"] if customer else "Anonymous"
+        
+        return {"ratings": [Rating(**rating) for rating in ratings]}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get driver ratings: {str(e)}")
+
+# OTP Verification System
+import random
+import asyncio
+
+@app.post("/api/auth/send-otp")
+async def send_otp(phone_data: dict):
+    """Send OTP for phone verification"""
+    try:
+        phone_number = phone_data.get("phone_number")
+        user_id = phone_data.get("user_id")
+        
+        if not phone_number or not user_id:
+            raise HTTPException(status_code=400, detail="Phone number and user ID required")
+        
+        # Generate 6-digit OTP
+        otp_code = str(random.randint(100000, 999999))
+        
+        # Store OTP in Redis with 5-minute expiry
+        await db.otp_codes.insert_one({
+            "phone_number": phone_number,
+            "user_id": user_id,
+            "otp_code": otp_code,
+            "created_at": datetime.now(timezone.utc),
+            "expires_at": datetime.now(timezone.utc) + timedelta(minutes=5),
+            "verified": False
+        })
+        
+        # **MOCKED** SMS sending - In production, integrate with SMS service like Twilio
+        print(f"OTP for {phone_number}: {otp_code}")  # For development only
+        
+        return {
+            "message": "OTP sent successfully",
+            "phone_number": phone_number,
+            "mock": True  # Remove in production
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send OTP: {str(e)}")
+
+@app.post("/api/auth/verify-otp")
+async def verify_otp(otp_data: OTPVerification):
+    """Verify OTP code"""
+    try:
+        # Find valid OTP
+        otp_record = await db.otp_codes.find_one({
+            "phone_number": otp_data.phone_number,
+            "user_id": otp_data.user_id,
+            "otp_code": otp_data.otp_code,
+            "verified": False,
+            "expires_at": {"$gt": datetime.now(timezone.utc)}
+        })
+        
+        if not otp_record:
+            raise HTTPException(status_code=400, detail="Invalid or expired OTP")
+        
+        # Mark OTP as verified
+        await db.otp_codes.update_one(
+            {"_id": otp_record["_id"]},
+            {"$set": {"verified": True, "verified_at": datetime.now(timezone.utc)}}
+        )
+        
+        # Mark user phone as verified
+        await db.users.update_one(
+            {"id": otp_data.user_id},
+            {"$set": {"is_verified": True, "phone_verified_at": datetime.now(timezone.utc)}}
+        )
+        
+        return {"message": "Phone number verified successfully"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OTP verification failed: {str(e)}")
+
+# In-App Messaging System
+@app.post("/api/messages/send")
+async def send_message(message_data: Message):
+    """Send message in booking chat"""
+    try:
+        # Verify booking exists and user is part of it
+        if message_data.booking_id:
+            booking = await db.ride_bookings.find_one({"id": message_data.booking_id})
+            if not booking:
+                booking = await db.delivery_bookings.find_one({"id": message_data.booking_id})
+            
+            if not booking:
+                raise HTTPException(status_code=404, detail="Booking not found")
+        
+        # Save message
+        message_dict = message_data.dict()
+        message_dict["timestamp"] = message_dict["timestamp"].isoformat()
+        
+        await db.messages.insert_one(message_dict)
+        
+        # **MOCKED** Push notification - In production, send push notification to recipient
+        print(f"New message in booking {message_data.booking_id} from {message_data.sender_type}")
+        
+        return {"message": "Message sent successfully", "message_id": message_data.id}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send message: {str(e)}")
+
+@app.get("/api/messages/{booking_id}")
+async def get_booking_messages(booking_id: str, limit: int = 50):
+    """Get messages for a booking"""
+    try:
+        messages = await db.messages.find({"booking_id": booking_id}).sort("timestamp", -1).limit(limit).to_list(length=limit)
+        
+        return {"messages": [Message(**message) for message in messages]}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get messages: {str(e)}")
+
+@app.patch("/api/messages/{message_id}/read")
+async def mark_message_read(message_id: str):
+    """Mark message as read"""
+    try:
+        result = await db.messages.update_one(
+            {"id": message_id},
+            {"$set": {"is_read": True, "read_at": datetime.now(timezone.utc)}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        return {"message": "Message marked as read"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to mark message as read: {str(e)}")
+
+# Performance Optimization - Caching and Database Indexing
+async def create_database_indexes():
+    """Create database indexes for performance optimization"""
+    try:
+        # User indexes
+        await db.users.create_index("email", unique=True)
+        await db.users.create_index("phone", unique=True)
+        
+        # Driver indexes
+        await db.driver_profiles.create_index("user_id", unique=True)
+        await db.driver_profiles.create_index("is_available")
+        await db.driver_profiles.create_index("vehicle_type")
+        
+        # Booking indexes
+        await db.ride_bookings.create_index("customer_id")
+        await db.ride_bookings.create_index("driver_id")
+        await db.ride_bookings.create_index("status")
+        await db.ride_bookings.create_index("created_at")
+        
+        await db.delivery_bookings.create_index("customer_id")
+        await db.delivery_bookings.create_index("driver_id")
+        await db.delivery_bookings.create_index("status")
+        await db.delivery_bookings.create_index("created_at")
+        
+        # Location indexes
+        await db.location_updates.create_index("driver_id")
+        await db.location_updates.create_index("timestamp")
+        
+        # Rating indexes
+        await db.ratings.create_index("driver_id")
+        await db.ratings.create_index("booking_id", unique=True)
+        
+        # Message indexes
+        await db.messages.create_index("booking_id")
+        await db.messages.create_index("timestamp")
+        
+        print("Database indexes created successfully")
+        
+    except Exception as e:
+        print(f"Error creating database indexes: {e}")
+
+# Create indexes on startup
+@app.on_event("startup")
+async def startup_event():
+    await create_database_indexes()
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8001)
