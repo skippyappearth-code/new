@@ -367,6 +367,410 @@ const AuthForm = () => {
   );
 };
 
+// Rating & Review Component
+const RatingModal = ({ booking, isOpen, onClose, onSubmit }) => {
+  const [rating, setRating] = useState(5);
+  const [reviewText, setReviewText] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSubmitting(true);
+
+    try {
+      await onSubmit({
+        booking_id: booking.id,
+        booking_type: booking.type,
+        customer_id: booking.customer_id,
+        driver_id: booking.driver_id,
+        rating: rating,
+        review_text: reviewText
+      });
+      onClose();
+    } catch (error) {
+      console.error('Rating submission error:', error);
+      alert('Failed to submit rating');
+    }
+
+    setSubmitting(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="modal-overlay" data-testid="rating-modal">
+      <div className="modal-content">
+        <div className="modal-header">
+          <h3>Rate Your {booking.type === 'ride' ? 'Ride' : 'Delivery'}</h3>
+          <button className="close-btn" onClick={onClose}>×</button>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="rating-section">
+            <h4>How was your experience?</h4>
+            <div className="star-rating">
+              {[1, 2, 3, 4, 5].map(star => (
+                <button
+                  key={star}
+                  type="button"
+                  className={`star ${star <= rating ? 'active' : ''}`}
+                  onClick={() => setRating(star)}
+                  data-testid={`star-${star}`}
+                >
+                  ⭐
+                </button>
+              ))}
+            </div>
+            <p className="rating-text">
+              {rating === 1 && 'Poor'}
+              {rating === 2 && 'Fair'}
+              {rating === 3 && 'Good'}
+              {rating === 4 && 'Very Good'}
+              {rating === 5 && 'Excellent'}
+            </p>
+          </div>
+
+          <div className="review-section">
+            <label>Additional Comments (Optional)</label>
+            <textarea
+              value={reviewText}
+              onChange={(e) => setReviewText(e.target.value)}
+              placeholder="Share your experience..."
+              rows={4}
+              data-testid="review-textarea"
+            />
+          </div>
+
+          <div className="modal-actions">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={submitting}
+              data-testid="submit-rating-btn"
+            >
+              {submitting ? 'Submitting...' : 'Submit Rating'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={onClose}
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// OTP Verification Component
+const OTPVerification = ({ phoneNumber, userId, onVerified, onCancel }) => {
+  const [otp, setOtp] = useState('');
+  const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+
+  const sendOTP = async () => {
+    setSending(true);
+    
+    try {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          user_id: userId
+        })
+      });
+      
+      setOtpSent(true);
+      alert('OTP sent to your phone number');
+    } catch (error) {
+      console.error('OTP send error:', error);
+      alert('Failed to send OTP');
+    }
+    
+    setSending(false);
+  };
+
+  const verifyOTP = async (e) => {
+    e.preventDefault();
+    setVerifying(true);
+
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone_number: phoneNumber,
+          user_id: userId,
+          otp_code: otp
+        })
+      });
+
+      if (response.ok) {
+        onVerified();
+      } else {
+        alert('Invalid OTP. Please try again.');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      alert('OTP verification failed');
+    }
+
+    setVerifying(false);
+  };
+
+  return (
+    <div className="otp-verification" data-testid="otp-verification">
+      <div className="otp-header">
+        <h3>Verify Phone Number</h3>
+        <p>We'll send an OTP to {phoneNumber}</p>
+      </div>
+
+      {!otpSent ? (
+        <div className="otp-send">
+          <button
+            className="btn btn-primary"
+            onClick={sendOTP}
+            disabled={sending}
+            data-testid="send-otp-btn"
+          >
+            {sending ? 'Sending...' : 'Send OTP'}
+          </button>
+          <button className="btn btn-secondary" onClick={onCancel}>
+            Cancel
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={verifyOTP}>
+          <div className="otp-input-section">
+            <label>Enter OTP</label>
+            <input
+              type="text"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="000000"
+              maxLength={6}
+              data-testid="otp-input"
+            />
+          </div>
+          
+          <div className="otp-actions">
+            <button
+              type="submit"
+              className="btn btn-primary"
+              disabled={verifying || otp.length !== 6}
+              data-testid="verify-otp-btn"
+            >
+              {verifying ? 'Verifying...' : 'Verify OTP'}
+            </button>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={sendOTP}
+              disabled={sending}
+            >
+              Resend OTP
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+};
+
+// In-App Messaging Component
+const MessagingInterface = ({ bookingId, currentUserId, userType }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [sending, setSending] = useState(false);
+
+  const fetchMessages = async () => {
+    try {
+      const response = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/${bookingId}`);
+      const data = await response.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const sendMessage = async (e) => {
+    e.preventDefault();
+    if (!newMessage.trim()) return;
+
+    setSending(true);
+
+    try {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          booking_id: bookingId,
+          sender_id: currentUserId,
+          sender_type: userType,
+          message_text: newMessage
+        })
+      });
+
+      setNewMessage('');
+      fetchMessages(); // Refresh messages
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+
+    setSending(false);
+  };
+
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 3000); // Poll for new messages
+    return () => clearInterval(interval);
+  }, [bookingId]);
+
+  return (
+    <div className="messaging-interface" data-testid="messaging-interface">
+      <div className="messages-container">
+        {messages.length === 0 ? (
+          <p className="no-messages">No messages yet. Start the conversation!</p>
+        ) : (
+          messages.map(message => (
+            <div
+              key={message.id}
+              className={`message ${message.sender_type === userType ? 'sent' : 'received'}`}
+              data-testid={`message-${message.id}`}
+            >
+              <div className="message-content">
+                <p>{message.message_text}</p>
+                <small>{new Date(message.timestamp).toLocaleTimeString()}</small>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      <form onSubmit={sendMessage} className="message-form">
+        <input
+          type="text"
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          placeholder="Type your message..."
+          disabled={sending}
+          data-testid="message-input"
+        />
+        <button
+          type="submit"
+          className="btn btn-primary"
+          disabled={sending || !newMessage.trim()}
+          data-testid="send-message-btn"
+        >
+          {sending ? '...' : 'Send'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
+// Enhanced Booking Card Component
+const BookingCard = ({ booking }) => {
+  const [showRating, setShowRating] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const { user } = useContext(AuthContext);
+
+  const submitRating = async (ratingData) => {
+    try {
+      await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/ratings/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(ratingData)
+      });
+      
+      alert('Thank you for your rating!');
+    } catch (error) {
+      console.error('Rating submission error:', error);
+      throw error;
+    }
+  };
+
+  const canRate = booking.status === 'completed' || booking.status === 'delivered';
+  const canMessage = booking.status !== 'completed' && booking.status !== 'delivered' && booking.status !== 'cancelled';
+
+  return (
+    <>
+      <div className="booking-card" data-testid={`booking-${booking.id}`}>
+        <div className="booking-header">
+          <span className={`booking-type ${booking.type}`}>
+            {booking.type === 'ride' ? '🏍️' : '📦'} {booking.type}
+          </span>
+          <span className={`status ${booking.status}`} data-testid={`booking-status-${booking.status}`}>
+            {booking.status}
+          </span>
+        </div>
+        
+        <div className="booking-details">
+          <p><strong>From:</strong> {booking.pickup_location.name}</p>
+          <p><strong>To:</strong> {booking.drop_location.name}</p>
+          <p><strong>Fare:</strong> ₹{booking.fare}</p>
+          <p><strong>Date:</strong> {new Date(booking.created_at).toLocaleDateString()}</p>
+          {booking.driver_name && (
+            <p><strong>Driver:</strong> {booking.driver_name}</p>
+          )}
+        </div>
+        
+        <div className="booking-actions">
+          {booking.status !== 'completed' && booking.status !== 'cancelled' && (
+            <button 
+              className="btn btn-secondary"
+              data-testid={`track-booking-${booking.id}`}
+            >
+              Track Order
+            </button>
+          )}
+          
+          {canMessage && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowMessages(!showMessages)}
+              data-testid={`message-driver-${booking.id}`}
+            >
+              💬 Chat
+            </button>
+          )}
+          
+          {canRate && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowRating(true)}
+              data-testid={`rate-booking-${booking.id}`}
+            >
+              ⭐ Rate
+            </button>
+          )}
+        </div>
+        
+        {showMessages && (
+          <div className="messages-section">
+            <MessagingInterface
+              bookingId={booking.id}
+              currentUserId={user.id}
+              userType="customer"
+            />
+          </div>
+        )}
+      </div>
+
+      <RatingModal
+        booking={booking}
+        isOpen={showRating}
+        onClose={() => setShowRating(false)}
+        onSubmit={submitRating}
+      />
+    </>
+  );
+};
+
 // Customer Dashboard
 const CustomerDashboard = () => {
   const { user } = useContext(AuthContext);
