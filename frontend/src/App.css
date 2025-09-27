@@ -709,6 +709,310 @@ body {
   }
 }
 
+/* Rating Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 15px;
+  padding: 2rem;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.modal-header h3 {
+  color: #2d3748;
+  margin: 0;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #4a5568;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: #2d3748;
+  background: #f7fafc;
+  border-radius: 50%;
+}
+
+.rating-section {
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.star-rating {
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.star {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  opacity: 0.3;
+  transition: all 0.2s;
+}
+
+.star.active {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.star:hover {
+  opacity: 0.8;
+}
+
+.rating-text {
+  font-weight: 600;
+  color: #667eea;
+  margin-top: 0.5rem;
+}
+
+.review-section {
+  margin-bottom: 1.5rem;
+}
+
+.review-section label {
+  display: block;
+  color: #4a5568;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.review-section textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+}
+
+.review-section textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+/* OTP Verification Styles */
+.otp-verification {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+  margin: 2rem auto;
+  text-align: center;
+}
+
+.otp-header {
+  margin-bottom: 2rem;
+}
+
+.otp-header h3 {
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.otp-header p {
+  color: #4a5568;
+}
+
+.otp-input-section {
+  margin-bottom: 1.5rem;
+}
+
+.otp-input-section label {
+  display: block;
+  color: #4a5568;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.otp-input-section input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1.2rem;
+  text-align: center;
+  letter-spacing: 0.5rem;
+}
+
+.otp-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.otp-send {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Messaging Interface Styles */
+.messaging-interface {
+  background: #f7fafc;
+  border-radius: 15px;
+  padding: 1rem;
+  margin-top: 1rem;
+  max-height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.messages-container {
+  flex: 1;
+  overflow-y: auto;
+  margin-bottom: 1rem;
+  max-height: 300px;
+}
+
+.no-messages {
+  text-align: center;
+  color: #718096;
+  font-style: italic;
+  padding: 2rem;
+}
+
+.message {
+  margin-bottom: 1rem;
+  display: flex;
+}
+
+.message.sent {
+  justify-content: flex-end;
+}
+
+.message.received {
+  justify-content: flex-start;
+}
+
+.message-content {
+  background: white;
+  padding: 0.75rem 1rem;
+  border-radius: 15px;
+  max-width: 70%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.message.sent .message-content {
+  background: #667eea;
+  color: white;
+}
+
+.message-content p {
+  margin: 0;
+  margin-bottom: 0.25rem;
+}
+
+.message-content small {
+  opacity: 0.7;
+  font-size: 0.75rem;
+}
+
+.message-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.message-form input {
+  flex: 1;
+  padding: 0.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.message-form button {
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+}
+
+/* Enhanced Payment Gateway Styles */
+.payment-gateway {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.payment-description {
+  color: #4a5568;
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.method-icons {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.method-icons span {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Messages Section in Booking Card */
+.messages-section {
+  border-top: 2px solid #e2e8f0;
+  margin-top: 1rem;
+  padding-top: 1rem;
+}
+
 @media (max-width: 480px) {
   .auth-container {
     padding: 1rem;
@@ -728,5 +1032,31 @@ body {
 
   .tab-buttons button {
     width: 100%;
+  }
+
+  .modal-content {
+    padding: 1rem;
+    width: 95%;
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .star-rating {
+    gap: 0.25rem;
+  }
+
+  .star {
+    font-size: 1.5rem;
+  }
+
+  .method-icons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .message-form {
+    flex-direction: column;
   }
 }
