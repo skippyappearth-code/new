@@ -84,6 +84,30 @@ class LocationUpdate(BaseModel):
     longitude: float
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
+class Rating(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    booking_id: str
+    booking_type: Literal["ride", "delivery"]
+    customer_id: str
+    driver_id: str
+    rating: int = Field(ge=1, le=5)  # Rating between 1-5 stars
+    review_text: Optional[str] = None
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+class OTPVerification(BaseModel):
+    phone_number: str
+    otp_code: str
+    user_id: str
+
+class Message(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    booking_id: str
+    sender_id: str
+    sender_type: Literal["customer", "driver"]
+    message_text: str
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    is_read: bool = False
+
 # Authentication (Mock implementation)
 async def get_current_user(user_id: str = None):
     if not user_id:
