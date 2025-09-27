@@ -466,8 +466,8 @@ const CustomerDashboard = () => {
 
   if (showPayment) {
     return (
-      <MockPaymentGateway
-        amount={currentBooking.fare}
+      <RazorpayPayment
+        booking={currentBooking}
         onPaymentComplete={handlePaymentComplete}
         onPaymentCancel={() => setShowPayment(false)}
       />
