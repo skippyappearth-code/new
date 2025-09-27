@@ -342,40 +342,172 @@ async def track_booking(booking_id: str, booking_type: Literal["ride", "delivery
     
     return mock_tracking
 
-# Payment Processing (Mock Implementation - Will be replaced with Razorpay)
-@app.post("/api/payments/create-order")
-async def create_payment_order(payment_data: dict):
-    """**MOCKED** - Will be replaced with Razorpay integration"""
-    
-    mock_order = {
-        "order_id": f"mock_order_{uuid.uuid4()}",
-        "amount": payment_data["amount"],
-        "currency": "INR",
-        "status": "created",
-        "payment_methods": ["UPI", "Cards", "Wallets", "Net Banking"],
-        "mock": True
-    }
-    
-    return mock_order
+# Razorpay Integration
+import razorpay
+import hmac
+import hashlib
 
-@app.post("/api/payments/process")
-async def process_payment(payment_data: dict):
-    """**MOCKED** - Will be replaced with Razorpay webhooks"""
+# Initialize Razorpay client
+RAZORPAY_KEY_ID = os.environ.get('RAZORPAY_KEY_ID')
+RAZORPAY_KEY_SECRET = os.environ.get('RAZORPAY_KEY_SECRET')
+
+if RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET:
+    razorpay_client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+else:
+    razorpay_client = None
+
+class PaymentOrder(BaseModel):
+    amount: int  # Amount in paise (INR)
+    currency: str = "INR"
+    receipt: str
+    booking_id: str
+    customer_id: str
+
+class PaymentVerification(BaseModel):
+    razorpay_order_id: str
+    razorpay_payment_id: str
+    razorpay_signature: str
+    booking_id: str
+
+@app.post("/api/payments/create-order")
+async def create_payment_order(payment_order: PaymentOrder):
+    """Create Razorpay payment order"""
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment service not configured")
     
-    # Mock payment processing
-    import random
-    success = random.choice([True, True, True, False])  # 75% success rate for testing
+    try:
+        # Create order with Razorpay
+        order_data = {
+            "amount": payment_order.amount,  # Amount in paise
+            "currency": payment_order.currency,
+            "receipt": payment_order.receipt,
+            "payment_capture": 1  # Auto capture payment
+        }
+        
+        razorpay_order = razorpay_client.order.create(data=order_data)
+        
+        # Store order details in database
+        order_record = {
+            "order_id": razorpay_order["id"],
+            "booking_id": payment_order.booking_id,
+            "customer_id": payment_order.customer_id,
+            "amount": payment_order.amount,
+            "currency": payment_order.currency,
+            "status": "created",
+            "created_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payment_orders.insert_one(order_record)
+        
+        return {
+            "order_id": razorpay_order["id"],
+            "amount": razorpay_order["amount"],
+            "currency": razorpay_order["currency"],
+            "key_id": RAZORPAY_KEY_ID,
+            "status": "created"
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create payment order: {str(e)}")
+
+@app.post("/api/payments/verify")
+async def verify_payment(payment_verification: PaymentVerification):
+    """Verify Razorpay payment signature"""
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment service not configured")
     
-    if success:
+    try:
+        # Verify signature
+        params_dict = {
+            'razorpay_order_id': payment_verification.razorpay_order_id,
+            'razorpay_payment_id': payment_verification.razorpay_payment_id,
+            'razorpay_signature': payment_verification.razorpay_signature
+        }
+        
+        razorpay_client.utility.verify_payment_signature(params_dict)
+        
+        # Update payment status in database
+        payment_record = {
+            "order_id": payment_verification.razorpay_order_id,
+            "payment_id": payment_verification.razorpay_payment_id,
+            "signature": payment_verification.razorpay_signature,
+            "booking_id": payment_verification.booking_id,
+            "status": "completed",
+            "verified_at": datetime.now(timezone.utc).isoformat()
+        }
+        
+        await db.payments.insert_one(payment_record)
+        
+        # Update booking status
+        await db.ride_bookings.update_one(
+            {"id": payment_verification.booking_id},
+            {"$set": {"payment_status": "completed", "status": "confirmed"}}
+        )
+        
+        await db.delivery_bookings.update_one(
+            {"id": payment_verification.booking_id},
+            {"$set": {"payment_status": "completed", "status": "confirmed"}}
+        )
+        
         return {
             "status": "success",
-            "payment_id": f"mock_pay_{uuid.uuid4()}",
-            "amount": payment_data["amount"],
-            "method": payment_data.get("method", "UPI"),
-            "mock": True
+            "message": "Payment verified successfully",
+            "payment_id": payment_verification.razorpay_payment_id
         }
-    else:
-        raise HTTPException(status_code=400, detail="Payment failed - insufficient funds")
+        
+    except razorpay.errors.SignatureVerificationError:
+        raise HTTPException(status_code=400, detail="Invalid payment signature")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Payment verification failed: {str(e)}")
+
+@app.post("/api/payments/webhook")
+async def razorpay_webhook(request: dict):
+    """Handle Razorpay webhook events"""
+    if not razorpay_client:
+        raise HTTPException(status_code=500, detail="Payment service not configured")
+    
+    try:
+        # Verify webhook signature (recommended for production)
+        # webhook_signature = request.headers.get('X-Razorpay-Signature')
+        # razorpay_client.utility.verify_webhook_signature(request.body, webhook_signature, webhook_secret)
+        
+        event = request.get('event')
+        payload = request.get('payload', {}).get('payment', {}).get('entity', {})
+        
+        if event == 'payment.captured':
+            # Payment successful
+            payment_id = payload.get('id')
+            order_id = payload.get('order_id')
+            amount = payload.get('amount')
+            
+            # Update payment status
+            await db.payments.update_one(
+                {"order_id": order_id},
+                {"$set": {"status": "captured", "captured_at": datetime.now(timezone.utc).isoformat()}}
+            )
+            
+        elif event == 'payment.failed':
+            # Payment failed
+            payment_id = payload.get('id')
+            order_id = payload.get('order_id')
+            error_code = payload.get('error_code')
+            error_description = payload.get('error_description')
+            
+            # Update payment status
+            await db.payments.update_one(
+                {"order_id": order_id},
+                {"$set": {
+                    "status": "failed",
+                    "error_code": error_code,
+                    "error_description": error_description,
+                    "failed_at": datetime.now(timezone.utc).isoformat()
+                }}
+            )
+        
+        return {"status": "ok"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Webhook processing failed: {str(e)}")
 
 # Admin Dashboard
 @app.get("/api/admin/stats")
