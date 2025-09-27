@@ -42,64 +42,141 @@ const MockGoogleMap = ({ locations, onLocationSelect, showRoute = false }) => {
   );
 };
 
-// Mock Payment Component
-const MockPaymentGateway = ({ amount, onPaymentComplete, onPaymentCancel }) => {
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
-  const [processing, setProcessing] = useState(false);
+// Razorpay Payment Component
+const RazorpayPayment = ({ booking, onPaymentComplete, onPaymentCancel }) => {
+  const [loading, setLoading] = useState(false);
 
-  const handlePayment = () => {
-    setProcessing(true);
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handlePayment = async () => {
+    setLoading(true);
     
-    // Mock payment processing
-    setTimeout(() => {
-      const success = Math.random() > 0.2; // 80% success rate
-      setProcessing(false);
-      
-      if (success) {
-        onPaymentComplete({
-          payment_id: `mock_pay_${Date.now()}`,
-          amount: amount,
-          method: paymentMethod,
-          status: 'success'
-        });
-      } else {
-        alert('Payment failed. Please try again.');
+    try {
+      // Load Razorpay script
+      const isLoaded = await loadRazorpay();
+      if (!isLoaded) {
+        alert('Razorpay SDK failed to load. Please check your connection.');
+        setLoading(false);
+        return;
       }
-    }, 2000);
+
+      // Create payment order
+      const orderResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/create-order`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          amount: Math.round(booking.fare * 100), // Convert to paise
+          currency: 'INR',
+          receipt: `receipt_${booking.id}`,
+          booking_id: booking.id,
+          customer_id: booking.customer_id
+        })
+      });
+
+      const orderData = await orderResponse.json();
+
+      // Configure Razorpay options
+      const options = {
+        key: orderData.key_id,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'SwiftScooty',
+        description: `${booking.type === 'ride' ? 'Ride' : 'Delivery'} Payment`,
+        order_id: orderData.order_id,
+        handler: async (response) => {
+          try {
+            // Verify payment
+            const verifyResponse = await fetch(`${process.env.REACT_APP_BACKEND_URL}/api/payments/verify`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                booking_id: booking.id
+              })
+            });
+
+            const verifyData = await verifyResponse.json();
+            
+            if (verifyData.status === 'success') {
+              onPaymentComplete({
+                payment_id: response.razorpay_payment_id,
+                order_id: response.razorpay_order_id,
+                amount: booking.fare,
+                status: 'success'
+              });
+            } else {
+              alert('Payment verification failed');
+            }
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert('Payment verification failed');
+          }
+        },
+        prefill: {
+          name: booking.customer_name || '',
+          email: booking.customer_email || '',
+          contact: booking.customer_phone || ''
+        },
+        theme: {
+          color: '#667eea'
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment initialization failed');
+    }
+    
+    setLoading(false);
   };
 
   return (
-    <div className="payment-gateway" data-testid="payment-gateway">
+    <div className="payment-gateway" data-testid="razorpay-gateway">
       <div className="payment-header">
-        <h3>💳 Razorpay Payment (Will be integrated)</h3>
-        <p data-testid="payment-amount">Amount: ₹{amount}</p>
+        <h3>💳 Secure Payment with Razorpay</h3>
+        <p data-testid="payment-amount">Amount: ₹{booking.fare}</p>
+        <p className="payment-description">
+          Payment for {booking.type === 'ride' ? 'ride' : 'delivery'} from{' '}
+          {booking.pickup_location.name} to {booking.drop_location.name}
+        </p>
       </div>
       
       <div className="payment-methods">
-        <h4>Select Payment Method:</h4>
-        {['UPI', 'Credit Card', 'Debit Card', 'Net Banking', 'Paytm', 'PhonePe', 'Google Pay'].map(method => (
-          <label key={method} className="payment-option">
-            <input
-              type="radio"
-              name="paymentMethod"
-              value={method}
-              checked={paymentMethod === method}
-              onChange={(e) => setPaymentMethod(e.target.value)}
-              data-testid={`payment-method-${method.toLowerCase().replace(/\s+/g, '-')}`}
-            />
-            {method}
-          </label>
-        ))}
+        <h4>Supported Payment Methods:</h4>
+        <div className="method-icons">
+          <span>💳 Cards</span>
+          <span>📱 UPI</span>
+          <span>🏦 Net Banking</span>
+          <span>💰 Wallets</span>
+        </div>
       </div>
 
       <div className="payment-actions">
         <button 
           className="btn btn-primary" 
           onClick={handlePayment}
-          disabled={processing}
-          data-testid="pay-button"
+          disabled={loading}
+          data-testid="pay-with-razorpay-btn"
         >
-          {processing ? 'Processing...' : `Pay ₹${amount}`}
+          {loading ? 'Initializing...' : `Pay ₹${booking.fare}`}
         </button>
         <button 
           className="btn btn-secondary" 
