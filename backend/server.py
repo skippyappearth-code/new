@@ -118,6 +118,10 @@ def calculate_distance(pickup: dict, drop: dict) -> float:
 async def root():
     return {"message": "SwiftScooty API - Two Wheeler Taxi & Delivery Service for Northeast India"}
 
+@app.get("/api/")
+async def api_root():
+    return {"message": "SwiftScooty API - Two Wheeler Taxi & Delivery Service for Northeast India"}
+
 # User Management
 @app.post("/api/auth/register", response_model=User)
 async def register_user(user_data: dict):
