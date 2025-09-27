@@ -1,34 +1,732 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
+.app {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header Styles */
+.app-header {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1rem 0;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 2rem;
+}
+
+.header-content h1 {
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.header-actions span {
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.logout-btn {
+  background: #e53e3e;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.logout-btn:hover {
+  background: #c53030;
+  transform: translateY(-1px);
+}
+
+/* Auth Form Styles */
+.auth-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 2rem;
+}
+
+.auth-form {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+  text-align: center;
+}
+
+.auth-form h2 {
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+}
+
+.auth-form p {
+  color: #718096;
+  margin-bottom: 2rem;
+}
+
+.auth-form input,
+.auth-form select {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.auth-form input:focus,
+.auth-form select:focus {
+  outline: none;
+  border-color: #667eea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.auth-form button {
+  width: 100%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.auth-form button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+}
+
+.auth-form button:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-toggle {
+  color: #667eea;
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: underline;
+}
+
+.auth-toggle:hover {
+  color: #764ba2;
+}
+
+/* Dashboard Styles */
+.app-main {
+  flex: 1;
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.dashboard-header h2 {
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.tab-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.tab-buttons button {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e2e8f0;
+  background: white;
+  border-radius: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tab-buttons button:hover {
+  border-color: #667eea;
+  transform: translateY(-1px);
+}
+
+.tab-buttons button.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: transparent;
+}
+
+/* Mock Google Maps */
+.mock-map {
+  border: 2px solid #e2e8f0;
+  border-radius: 15px;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
+  background: linear-gradient(45deg, #f7fafc 0%, #edf2f7 100%);
+}
+
+.map-header {
+  background: #2d3748;
+  color: white;
+  padding: 0.75rem 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.map-title {
+  font-weight: 600;
+}
+
+.map-status {
+  font-size: 0.85rem;
+  color: #9ca3af;
+}
+
+.map-content {
+  padding: 2rem;
+  min-height: 200px;
+  position: relative;
+}
+
+.location-pins {
+  position: relative;
+  width: 100%;
+  height: 150px;
+}
+
+.map-pin {
+  position: absolute;
+  background: rgba(102, 126, 234, 0.1);
+  border: 2px solid #667eea;
+  border-radius: 10px;
+  padding: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #2d3748;
+  transform: translateX(-50%);
+}
+
+.route-line {
+  margin: 1rem 0;
+  text-align: center;
+  color: #667eea;
+  font-weight: 600;
+}
+
+.map-controls {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.map-controls button {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.map-controls button:hover {
+  background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+/* Payment Gateway Mock */
+.payment-gateway {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.payment-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.payment-header h3 {
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.payment-header p {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #667eea;
+}
+
+.payment-methods h4 {
+  color: #2d3748;
+  margin-bottom: 1rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.payment-option:hover {
+  border-color: #667eea;
+  background: rgba(102, 126, 234, 0.05);
+}
+
+.payment-option input[type="radio"] {
+  margin: 0;
+}
+
+.payment-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.payment-actions button {
+  flex: 1;
+  padding: 0.75rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Form Styles */
+.booking-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.booking-form h3 {
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  color: #4a5568;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #667eea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.25);
+}
+
+.btn-secondary {
+  background: #e2e8f0;
+  color: #4a5568;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #cbd5e0;
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Booking Cards */
+.bookings-list,
+.jobs-section {
+  margin-top: 2rem;
+}
+
+.bookings-list h3,
+.jobs-section h3 {
+  color: #2d3748;
+  margin-bottom: 1.5rem;
+}
+
+.booking-card,
+.job-card,
+.driver-card {
+  background: rgba(247, 250, 252, 0.8);
+  border: 2px solid #e2e8f0;
+  border-radius: 15px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s;
+}
+
+.booking-card:hover,
+.job-card:hover,
+.driver-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.15);
+}
+
+.booking-header,
+.job-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.booking-type,
+.job-type {
+  font-weight: 600;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.booking-type.ride,
+.job-type.ride {
+  background: rgba(56, 178, 172, 0.1);
+  color: #319795;
+}
+
+.booking-type.delivery,
+.job-type.delivery {
+  background: rgba(237, 137, 54, 0.1);
+  color: #dd6b20;
+}
+
+.status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.status.pending {
+  background: rgba(246, 173, 85, 0.1);
+  color: #d69e2e;
+}
+
+.status.accepted,
+.status.verified {
+  background: rgba(56, 178, 172, 0.1);
+  color: #319795;
+}
+
+.status.completed {
+  background: rgba(72, 187, 120, 0.1);
+  color: #38a169;
+}
+
+.status.cancelled {
+  background: rgba(245, 101, 101, 0.1);
+  color: #e53e3e;
+}
+
+.booking-details,
+.job-details {
+  margin-bottom: 1rem;
+}
+
+.booking-details p,
+.job-details p {
+  color: #4a5568;
+  margin-bottom: 0.25rem;
+}
+
+.booking-actions,
+.job-actions,
+.driver-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Driver Dashboard Specific */
+.availability-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.availability-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 25px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.availability-btn.online {
+  background: linear-gradient(135deg, #38a169 0%, #48bb78 100%);
+  color: white;
+}
+
+.availability-btn.offline {
+  background: linear-gradient(135deg, #e53e3e 0%, #fc8181 100%);
+  color: white;
+}
+
+.driver-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: rgba(247, 250, 252, 0.8);
+  border: 2px solid #e2e8f0;
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.stat-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+}
+
+.stat-card h4 {
+  color: #4a5568;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.stat-card p {
+  color: #2d3748;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+/* Admin Dashboard Specific */
+.admin-overview .stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.drivers-management .drivers-list {
+  display: grid;
+  gap: 1rem;
+}
+
+.driver-card {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.driver-info h4 {
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+}
+
+.driver-info p {
+  color: #4a5568;
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+}
+
+.driver-status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  text-align: center;
+}
+
+.availability.online {
+  color: #38a169;
+  font-weight: 600;
+}
+
+.availability.offline {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-main {
+    padding: 1rem;
+  }
+
+  .dashboard {
+    padding: 1rem;
+  }
+
+  .dashboard-header {
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
+  }
+
+  .tab-buttons {
     justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .driver-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+
+  .booking-actions,
+  .job-actions,
+  .driver-actions {
+    justify-content: center;
+  }
+
+  .header-content {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+
+  .driver-stats {
+    grid-template-columns: 1fr;
+  }
 }
 
-.App-link {
-    color: #61dafb;
-}
+@media (max-width: 480px) {
+  .auth-container {
+    padding: 1rem;
+  }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+  .auth-form {
+    padding: 1.5rem;
+  }
+
+  .payment-actions {
+    flex-direction: column;
+  }
+
+  .tab-buttons {
+    flex-direction: column;
+  }
+
+  .tab-buttons button {
+    width: 100%;
+  }
 }
