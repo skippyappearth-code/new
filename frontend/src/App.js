@@ -676,30 +676,7 @@ const CustomerDashboard = () => {
             <p data-testid="no-bookings-message">No bookings found.</p>
           ) : (
             bookings.map(booking => (
-              <div key={booking.id} className="booking-card" data-testid={`booking-${booking.id}`}>
-                <div className="booking-header">
-                  <span className={`booking-type ${booking.type}`}>
-                    {booking.type === 'ride' ? '🏍️' : '📦'} {booking.type}
-                  </span>
-                  <span className={`status ${booking.status}`} data-testid={`booking-status-${booking.status}`}>
-                    {booking.status}
-                  </span>
-                </div>
-                <div className="booking-details">
-                  <p><strong>From:</strong> {booking.pickup_location.name}</p>
-                  <p><strong>To:</strong> {booking.drop_location.name}</p>
-                  <p><strong>Fare:</strong> ₹{booking.fare}</p>
-                  <p><strong>Date:</strong> {new Date(booking.created_at).toLocaleDateString()}</p>
-                </div>
-                {booking.status !== 'completed' && (
-                  <button 
-                    className="btn btn-secondary"
-                    data-testid={`track-booking-${booking.id}`}
-                  >
-                    Track Order
-                  </button>
-                )}
-              </div>
+              <BookingCard key={booking.id} booking={booking} />
             ))
           )}
         </div>
